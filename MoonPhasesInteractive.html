@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Interactive Moon Phase Explorer</title>
+<style>
+  :root {
+    --bg: #0b1020;
+    --panel: #141b32;
+    --panel2: #0f162b;
+    --text: #f3f6ff;
+    --muted: #aeb8d4;
+    --accent: #7aa2ff;
+    --line: #2b3558;
+    --sun: #ffd65a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    background: radial-gradient(circle at top, #18213d, var(--bg) 55%);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  header {
+    padding: 24px 20px 10px;
+    text-align: center;
+  }
+  h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 44px); }
+  header p { margin: 0; color: var(--muted); }
+  .wrap {
+    width: min(1180px, calc(100% - 28px));
+    margin: 20px auto 36px;
+    display: grid;
+    grid-template-columns: 1.2fr .8fr;
+    gap: 18px;
+  }
+  .card {
+    background: rgba(20, 27, 50, .95);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 18px;
+    box-shadow: 0 12px 32px rgba(0,0,0,.25);
+  }
+  .space-card { min-height: 560px; position: relative; overflow: hidden; }
+  .title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+  #space {
+    position: relative;
+    width: 100%;
+    height: 480px;
+    background:
+      radial-gradient(circle at 20% 30%, rgba(255,255,255,.7) 0 1px, transparent 1.5px),
+      radial-gradient(circle at 70% 20%, rgba(255,255,255,.5) 0 1px, transparent 1.5px),
+      radial-gradient(circle at 82% 72%, rgba(255,255,255,.5) 0 1px, transparent 1.5px),
+      radial-gradient(circle at 35% 80%, rgba(255,255,255,.5) 0 1px, transparent 1.5px),
+      #070b16;
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .orbit {
+    position: absolute;
+    width: 310px;
+    height: 310px;
+    border: 2px dashed rgba(160,175,220,.35);
+    border-radius: 50%;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+  }
+  .earth {
+    position: absolute;
+    width: 82px;
+    height: 82px;
+    border-radius: 50%;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    background: radial-gradient(circle at 35% 30%, #66c9ff 0 18%, #2d74c7 38%, #19498c 70%, #0a2348 100%);
+    box-shadow: 0 0 24px rgba(90,160,255,.28);
+  }
+  .earth::after {
+    content: "Earth";
+    position: absolute;
+    top: 88px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: var(--muted);
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  .sun {
+    position: absolute;
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    left: 28px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: radial-gradient(circle, #fff6b8 0 15%, #ffd65a 35%, #ff9f2f 75%, #ff7a1c 100%);
+    box-shadow: 0 0 46px 16px rgba(255,190,65,.35);
+  }
+  .sun::after {
+    content: "Sunlight →";
+    position: absolute;
+    left: 96px;
+    top: 34px;
+    color: #ffe69b;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  #moonOrbiter {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 0;
+    height: 0;
+  }
+  .moon-space {
+    position: absolute;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(90deg, #f7f7ef 50%, #282a31 50%);
+    box-shadow: 0 0 10px rgba(255,255,255,.18);
+  }
+  .moon-label {
+    position: absolute;
+    transform: translate(-50%, 28px);
+    color: var(--muted);
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  .sunline {
+    position: absolute;
+    height: 2px;
+    background: linear-gradient(90deg, rgba(255,216,90,.05), rgba(255,216,90,.55), rgba(255,216,90,.05));
+    left: 110px;
+    right: 110px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+  .phase-card {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .phase-view {
+    display: grid;
+    place-items: center;
+    padding: 14px 0 4px;
+  }
+  #phaseMoon {
+    width: 230px;
+    height: 230px;
+    border-radius: 50%;
+    background: #23252d;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 0 28px rgba(255,255,255,.10);
+  }
+  #phaseMoon .lit {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: #f4f2dd;
+  }
+  .phase-name {
+    text-align: center;
+    font-size: 28px;
+    font-weight: 800;
+    margin-top: 8px;
+  }
+  .phase-sub {
+    text-align: center;
+    color: var(--muted);
+    min-height: 42px;
+  }
+  .controls {
+    background: var(--panel2);
+    border-radius: 14px;
+    padding: 14px;
+    border: 1px solid var(--line);
+  }
+  .row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  input[type="range"] {
+    width: 100%;
+    accent-color: var(--accent);
+  }
+  .ticks {
+    display: flex;
+    justify-content: space-between;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .facts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .fact {
+    background: var(--panel2);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 12px;
+  }
+  .fact b { display:block; margin-bottom: 4px; }
+  .fact span { color: var(--muted); }
+  .note {
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.45;
+  }
+  .teacher {
+    width: min(1180px, calc(100% - 28px));
+    margin: 0 auto 30px;
+    background: rgba(20, 27, 50, .95);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 18px 20px;
+  }
+  .teacher ol { margin-bottom: 0; }
+  @media (max-width: 850px) {
+    .wrap { grid-template-columns: 1fr; }
+    .space-card { min-height: auto; }
+    #space { height: 430px; }
+    .facts { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Interactive Moon Phase Explorer</h1>
+  <p>Move through one lunar month and connect the Moon's orbital position to the phase seen from Earth.</p>
+</header>
+
+<main class="wrap">
+  <section class="card space-card">
+    <div class="title">View from Space</div>
+    <div id="space">
+      <div class="sunline"></div>
+      <div class="sun"></div>
+      <div class="orbit"></div>
+      <div class="earth"></div>
+      <div id="moonOrbiter">
+        <div id="spaceMoon" class="moon-space"></div>
+        <div id="spaceMoonLabel" class="moon-label">Moon</div>
+      </div>
+    </div>
+    <p class="note">The bright half of the Moon always faces the Sun. The phase changes because Earth sees different fractions of that illuminated half as the Moon orbits.</p>
+  </section>
+
+  <section class="card phase-card">
+    <div class="title">What an Observer on Earth Sees</div>
+
+    <div class="phase-view">
+      <div id="phaseMoon"><div class="lit" id="litLayer"></div></div>
+      <div class="phase-name" id="phaseName">New Moon</div>
+      <div class="phase-sub" id="phaseDesc"></div>
+    </div>
+
+    <div class="controls">
+      <div class="row">
+        <strong>Lunar Day</strong>
+        <span id="dayReadout">0.0 / 29.5</span>
+      </div>
+      <input id="daySlider" type="range" min="0" max="29.5" step="0.1" value="0">
+      <div class="ticks"><span>New</span><span>First Quarter</span><span>Full</span><span>Third Quarter</span><span>New</span></div>
+    </div>
+
+    <div class="facts">
+      <div class="fact"><b>Illuminated fraction visible</b><span id="illumination">0%</span></div>
+      <div class="fact"><b>Waxing / Waning</b><span id="waxing">Waxing</span></div>
+      <div class="fact"><b>Approximate phase angle</b><span id="angleReadout">0°</span></div>
+      <div class="fact"><b>Cycle length</b><span>About 29.5 days</span></div>
+    </div>
+  </section>
+</main>
+
+<section class="teacher">
+  <div class="title">Suggested Classroom Use</div>
+  <ol>
+    <li>Start at New Moon and ask students where the illuminated half is.</li>
+    <li>Move slowly toward First Quarter and ask why the Moon appears half lit even though half of the whole Moon is always illuminated.</li>
+    <li>Stop at Full Moon and compare this geometry with lunar-eclipse geometry.</li>
+    <li>Have students explain why Earth's shadow is not responsible for ordinary lunar phases.</li>
+    <li>Use the slider as evidence for the Johnny/Suzie writing prompt.</li>
+  </ol>
+</section>
+
+<script>
+const slider = document.getElementById('daySlider');
+const dayReadout = document.getElementById('dayReadout');
+const orbiter = document.getElementById('moonOrbiter');
+const spaceMoon = document.getElementById('spaceMoon');
+const moonLabel = document.getElementById('spaceMoonLabel');
+const phaseName = document.getElementById('phaseName');
+const phaseDesc = document.getElementById('phaseDesc');
+const illumination = document.getElementById('illumination');
+const waxing = document.getElementById('waxing');
+const angleReadout = document.getElementById('angleReadout');
+const litLayer = document.getElementById('litLayer');
+
+function phaseInfo(day) {
+  const p = (day / 29.5) % 1;
+  const angle = p * 360;
+  let name, desc;
+  if (p < 0.03 || p > 0.97) {
+    name = "New Moon";
+    desc = "The Moon is near the Sun in the sky. The sunlit half mostly faces away from Earth.";
+  } else if (p < 0.22) {
+    name = "Waxing Crescent";
+    desc = "A growing sliver of the Moon's illuminated half is visible from Earth.";
+  } else if (p < 0.28) {
+    name = "First Quarter";
+    desc = "Half of the Moon's visible face appears illuminated.";
+  } else if (p < 0.47) {
+    name = "Waxing Gibbous";
+    desc = "More than half of the visible face is illuminated and still increasing.";
+  } else if (p < 0.53) {
+    name = "Full Moon";
+    desc = "Earth sees nearly the entire sunlit half of the Moon.";
+  } else if (p < 0.72) {
+    name = "Waning Gibbous";
+    desc = "More than half is illuminated, but the visible lit portion is decreasing.";
+  } else if (p < 0.78) {
+    name = "Third Quarter";
+    desc = "Half of the visible face appears illuminated as the Moon wanes.";
+  } else {
+    name = "Waning Crescent";
+    desc = "Only a shrinking sliver of the illuminated half remains visible.";
+  }
+  return {p, angle, name, desc};
+}
+
+function setPhaseShape(p) {
+  // Lunar illumination fraction: 0 at new, 1 at full.
+  const illum = (1 - Math.cos(2 * Math.PI * p)) / 2;
+  const waxingNow = p < 0.5;
+
+  // Build a physically intuitive phase using inset box-shadow on the lit circle.
+  // At new: dark. At full: light. Quarter: half.
+  litLayer.style.background = '#f4f2dd';
+  litLayer.style.transform = 'none';
+  litLayer.style.boxShadow = 'none';
+
+  const x = Math.cos(2 * Math.PI * p); // +1 new, -1 full
+  const half = 115;
+
+  if (p < 0.5) {
+    // waxing: right side illuminated
+    if (p < 0.25) {
+      const shadow = Math.round(half * (1 - (p / 0.25)));
+      litLayer.style.clipPath = 'inset(0 0 0 50%)';
+      litLayer.style.boxShadow = `${-shadow}px 0 0 ${shadow}px #23252d inset`;
+    } else {
+      const t = (p - 0.25) / 0.25;
+      litLayer.style.clipPath = 'none';
+      litLayer.style.boxShadow = `${Math.round(half * (1-t))}px 0 0 ${Math.round(half * (1-t))}px #23252d inset`;
+    }
+  } else {
+    // waning: left side illuminated
+    if (p < 0.75) {
+      const t = (p - 0.5) / 0.25;
+      litLayer.style.clipPath = 'none';
+      litLayer.style.boxShadow = `${-Math.round(half * t)}px 0 0 ${Math.round(half * t)}px #23252d inset`;
+    } else {
+      const t = (p - 0.75) / 0.25;
+      const shadow = Math.round(half * t);
+      litLayer.style.clipPath = 'inset(0 50% 0 0)';
+      litLayer.style.boxShadow = `${shadow}px 0 0 ${shadow}px #23252d inset`;
+    }
+  }
+
+  // More robust visual overlay for crescent/gibbous/full/new using a second radial mask approximation.
+  // Apply CSS mask based on illumination geometry:
+  const phase = p * 2 * Math.PI;
+  const k = Math.cos(phase);
+  const terminator = Math.abs(k);
+  const side = waxingNow ? 'right' : 'left';
+
+  if (illum < 0.01) {
+    litLayer.style.opacity = 0;
+  } else {
+    litLayer.style.opacity = 1;
+    // Use simple half + ellipse approximation.
+    const pct = Math.max(1, Math.min(99, illum * 100));
+    if (p <= 0.5) {
+      litLayer.style.background = `radial-gradient(ellipse ${Math.max(2, Math.abs(50 - pct)*2)}% 100% at ${pct < 50 ? '100%' : '0%'} 50%, ${pct < 50 ? '#23252d' : '#f4f2dd'} 0 99%, transparent 100%), linear-gradient(90deg, #23252d 50%, #f4f2dd 50%)`;
+    } else {
+      litLayer.style.background = `radial-gradient(ellipse ${Math.max(2, Math.abs(50 - pct)*2)}% 100% at ${pct < 50 ? '0%' : '100%'} 50%, ${pct < 50 ? '#23252d' : '#f4f2dd'} 0 99%, transparent 100%), linear-gradient(90deg, #f4f2dd 50%, #23252d 50%)`;
+    }
+  }
+  return illum;
+}
+
+function update() {
+  const day = parseFloat(slider.value);
+  const info = phaseInfo(day);
+
+  dayReadout.textContent = `${day.toFixed(1)} / 29.5`;
+  phaseName.textContent = info.name;
+  phaseDesc.textContent = info.desc;
+  angleReadout.textContent = `${Math.round(info.angle)}°`;
+  waxing.textContent = info.p <= 0.5 ? "Waxing" : "Waning";
+
+  const illum = setPhaseShape(info.p);
+  illumination.textContent = `${Math.round(illum * 100)}%`;
+
+  // Orbit geometry: new moon should be on Sun-facing side (left), full moon opposite (right).
+  const orbitRadius = 155;
+  const theta = Math.PI - info.p * Math.PI * 2;
+  const x = Math.cos(theta) * orbitRadius;
+  const y = Math.sin(theta) * orbitRadius;
+  orbiter.style.transform = `translate(${x}px, ${y}px)`;
+  spaceMoon.style.transform = 'translate(-50%, -50%)';
+  moonLabel.style.left = '0px';
+  moonLabel.style.top = '0px';
+
+  // Sunlight arrives from left, so the left half of the space-view Moon is illuminated.
+  spaceMoon.style.background = 'linear-gradient(90deg, #f7f7ef 50%, #282a31 50%)';
+}
+
+slider.addEventListener('input', update);
+update();
+</script>
+</body>
+</html>
